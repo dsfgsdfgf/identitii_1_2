@@ -7,53 +7,88 @@ import (
 
 type node struct {
 	Name     string  `json:"name"`
-	Parent   *node   `json:"-"`
+	Parent   *node   `json:"-"`		// Extra parent pointer placeholder - depth iteration
 	Children []*node `json:"children,omitempty"`
 }
 
-func main() {
-	input := "[a[aa[aaa],ab,ac],b,c[ca,cb,cc[cca]]]"
 
+var examples = []string{
+	"[a,b,c]",
+	"[a[aa[aaa],ab,ac],b,c[ca,cb,cc[cca]]]",
+}
+
+func parse(v string) (*node, error) {
 	root := node{}
 	root.Name = ""
 	root.Children = make([]*node, 0)
 
-	var name string
+	var name string 	
+	var currentNode = &root	
 
-	var currentNode = &root
-
-	for _, v := range input[1 : len(input)-2] {
+	for _, v := range v[1:] {	// skip first "["
 		currentChar := string(v)
 		var newNode *node
-
+	
 		switch currentChar {
-		case "[":
-			newNode = &node{}
-			newNode.Name = name
-			newNode.Parent = currentNode
+		case "[":		
+			if len(name) > 0 {
+				newNode = &node{}
+				newNode.Name = name
+				newNode.Parent = currentNode	// nest it, depth+=1
 
-			currentNode.Children = append(currentNode.Children, newNode)
-			currentNode = newNode
+				// add created newNode to Children of Parent
+				currentNode.Children = append(currentNode.Children, newNode)
 
-			name = ""
-		case "]":
-			currentNode = currentNode.Parent
+				currentNode = newNode	//
 
-		case ",":
-			newNode = &node{}
-			newNode.Name = name
-			newNode.Parent = currentNode
-			currentNode.Children = append(currentNode.Children, newNode)
-			name = ""
+				name = "" // -- name reset
+			}
+
+		case "]":	
+			if len(name) > 0 {
+				newNode = &node{}
+				newNode.Name = name
+				newNode.Parent = currentNode
+
+				// add created newNode to Children of Parent
+				currentNode.Children = append(currentNode.Children, newNode)
+
+				// end nesting, go up depth
+				currentNode = currentNode.Parent
+
+				name = "" // -- name reset
+			}
+
+		case ",":		
+			if len(name) > 0 {
+				newNode = &node{}
+				newNode.Name = name
+				newNode.Parent = currentNode
+
+				currentNode.Children = append(currentNode.Children, newNode)
+
+				name = "" // -- name reset
+			}
 		default:
-			name += currentChar
+			name += currentChar // add current character of name to the current name
 
 		}
 	}
-
-	j, err := json.MarshalIndent(root, " ", " ")
-	if err != nil {
-		panic(err)
-	}
-	log.Printf(string(j))
+	return &root, nil
 }
+
+func main() {
+	for i, example := range examples {
+		result, err := parse(example)
+		if err != nil {
+			panic(err)
+		}
+
+		j, err := json.MarshalIndent(result, " ", " ")
+		if err != nil {
+			panic(err)
+		}
+		log.Printf("Example %d: %s - %s", i, example, string(j))
+	}
+}
+
