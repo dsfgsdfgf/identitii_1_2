@@ -1,1 +1,6 @@
-# identitii_1_2
+Identitii solutions;
+
+q1.go - Question 1
+q2.go - Question 2
+
+
