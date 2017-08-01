@@ -36,4 +36,3 @@ func double(v int) int {
 	time.Sleep(time.Second)
 	return v * 2
 }
-
